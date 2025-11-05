@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Result — LSB Steganography</title>
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>Result</h1>
+    {% if analysis_mode %}
+      <div class="card">
+        <h2>Steganalysis Report</h2>
+        <p><b>Mean Squared Error (MSE):</b> {{ mse }}</p>
+        <p><b>Peak Signal-to-Noise Ratio (PSNR):</b> {{ psnr }} dB</p>
+        <h3>Histogram Comparison</h3>
+        <img src="data:image/png;base64,{{ hist_image }}" alt="Histogram" class="preview">
+      </div>    
+    {% endif %}
+
+    {% if stego_datauri %}
+      <div class="card">
+        <h2>Stego Image</h2>
+        <img src="{{ stego_datauri }}" alt="Stego image" class="preview">
+        <p><a href="{{ url_for('download_file', filename=stego_filename) }}">Download Stego Image</a></p>
+      </div>
+    {% endif %}
+
+    {% if extracted_message is defined %}
+      <div class="card">
+        <h2>Extracted Message</h2>
+        <textarea readonly rows="6">{{ extracted_message }}</textarea>
+      </div>
+    {% endif %}
+
+    <p><a href="{{ url_for('index') }}">Go back</a></p>
+  </div>
+</body>
+</html>

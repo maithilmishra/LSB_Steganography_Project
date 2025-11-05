@@ -1,0 +1,19 @@
+# Git ignore file 
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Output and uploads
+input/
+output/
+
+# System files
+.DS_Store
+Thumbs.db

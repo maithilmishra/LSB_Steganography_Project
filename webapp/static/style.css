@@ -1,0 +1,12 @@
+/* simple clean style */
+body { font-family: Inter, Arial, sans-serif; background:#f5f7fb; color:#222; margin:0; padding:20px; }
+.container { max-width:860px; margin:24px auto; }
+h1 { margin-bottom:12px; font-size:26px; }
+.card { background:white; padding:18px; border-radius:12px; box-shadow: 0 6px 18px rgba(12,20,30,0.06); margin-bottom:16px; }
+label { display:block; margin-top:8px; margin-bottom:6px; font-weight:600; }
+input[type=file], textarea { width:100%; padding:8px; border-radius:6px; border:1px solid #e2e8f0; }
+button { margin-top:12px; background:#2563eb; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
+button:hover{ opacity:0.95; }
+.preview { max-width:100%; border-radius:8px; border:1px solid #ddd; }
+.flash { background:#fff7ed; color:#92400e; padding:8px; border-radius:6px; margin-bottom:12px; }
+footer { margin-top:12px; color:#6b7280; }

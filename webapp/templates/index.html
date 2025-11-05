@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LSB Steganography — Embed & Extract</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>Steganography: Embed & Extract (LSB)</h1>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">
+          {% for msg in messages %} <div>{{ msg }}</div> {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <h2>Embed Message into Image</h2>
+      <form action="{{ url_for('embed') }}" method="post" enctype="multipart/form-data">
+        <label>Cover image (PNG or BMP):</label>
+        <input type="file" name="cover_image" accept=".png,.bmp" required>
+        <label>Secret message:</label>
+        <textarea name="message" rows="4" placeholder="Type the message to hide..." required></textarea>
+        <button type="submit">Embed & Generate Stego Image</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Extract Message from Stego Image</h2>
+      <form action="{{ url_for('extract') }}" method="post" enctype="multipart/form-data">
+        <label>Stego image (PNG or BMP):</label>
+        <input type="file" name="stego_image" accept=".png,.bmp" required>
+        <button type="submit">Extract Message</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Steganalysis (Compare Cover & Stego Images)</h2>
+      <form action="{{ url_for('analyze') }}" method="post" enctype="multipart/form-data">
+        <label>Cover Image (original):</label>
+        <input type="file" name="cover_image" accept=".png,.bmp" required>
+    
+        <label>Stego Image (modified):</label>
+        <input type="file" name="stego_image" accept=".png,.bmp" required>
+        
+    <button type="submit">Analyze</button>
+  </form>
+</div>
+
+
+    <footer>
+      <small>Use PNG/BMP. Do not compress (JPEG will destroy hidden bits).</small>
+    </footer>
+  </div>
+</body>
+</html>
