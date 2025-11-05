@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Steganalysis Report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      background: linear-gradient(135deg, #eef2f7 0%, #ffffff 100%);
+      font-family: 'Segoe UI', sans-serif;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 50px auto;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      padding: 40px 50px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1e3a8a;
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+
+    .report-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 25px;
+    }
+
+    .metrics-card {
+      flex: 1;
+      min-width: 250px;
+      background: #f9fafb;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .metric {
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+
+    .metric span {
+      font-weight: bold;
+    }
+
+    .highlight {
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 8px;
+      margin-left: 8px;
+    }
+
+    .excellent { background: #dcfce7; color: #166534; }
+    .good { background: #fef9c3; color: #854d0e; }
+    .moderate { background: #fef3c7; color: #92400e; }
+    .poor { background: #fee2e2; color: #7f1d1d; }
+
+    .reference-card {
+      flex: 1;
+      min-width: 300px;
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid #dbeafe;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .reference-card h3 {
+      color: #1e3a8a;
+      margin-bottom: 10px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      text-align: center;
+      border: 1px solid #e5e7eb;
+    }
+
+    th {
+      background: #e0e7ff;
+      font-weight: 600;
+    }
+
+    .histogram {
+      text-align: center;
+      margin-top: 40px;
+    }
+
+    img {
+      border-radius: 12px;
+      max-width: 90%;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 500;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Steganalysis Report</h1>
+
+    <div class="report-grid">
+      <!-- Metrics Section -->
+      <div class="metrics-card">
+        <div class="metric">
+          <b>Mean Squared Error (MSE):</b>
+          <span id="mse-value">{{ mse }}</span>
+          <span id="mse-interpretation" class="highlight"></span>
+        </div>
+        <div class="metric">
+          <b>Peak Signal-to-Noise Ratio (PSNR):</b>
+          <span id="psnr-value">{{ psnr }} dB</span>
+          <span id="psnr-interpretation" class="highlight"></span>
+        </div>
+      </div>
+
+      <!-- Reference Table -->
+      <div class="reference-card">
+        <h3>Quality Reference</h3>
+        <table>
+          <tr><th>MSE Range</th><th>Interpretation</th></tr>
+          <tr><td>&lt; 1</td><td>Excellent</td></tr>
+          <tr><td>1 – 10</td><td>Good</td></tr>
+          <tr><td>10 – 50</td><td>Moderate</td></tr>
+          <tr><td>&gt; 50</td><td>Poor</td></tr>
+        </table>
+
+        <table>
+          <tr><th>PSNR (dB)</th><th>Interpretation</th></tr>
+          <tr><td>&gt; 40</td><td>Excellent</td></tr>
+          <tr><td>30 – 40</td><td>Good</td></tr>
+          <tr><td>20 – 30</td><td>Moderate</td></tr>
+          <tr><td>&lt; 20</td><td>Poor</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="histogram">
+      <h3>Histogram Comparison</h3>
+      <img src="{{ hist_datauri }}" alt="Histogram Comparison">
+    </div>
+
+    <a href="/">← Back Home</a>
+  </div>
+
+  <!-- Auto-interpretation script -->
+  <script>
+    const mse = parseFloat("{{ mse }}");
+    const psnr = parseFloat("{{ psnr }}");
+    const mseEl = document.getElementById("mse-interpretation");
+    const psnrEl = document.getElementById("psnr-interpretation");
+
+    // Interpret MSE
+    if (mse < 1) { mseEl.textContent = "Excellent"; mseEl.classList.add("excellent"); }
+    else if (mse < 10) { mseEl.textContent = "Good"; mseEl.classList.add("good"); }
+    else if (mse < 50) { mseEl.textContent = "Moderate"; mseEl.classList.add("moderate"); }
+    else { mseEl.textContent = "Poor"; mseEl.classList.add("poor"); }
+
+    // Interpret PSNR
+    if (psnr > 40) { psnrEl.textContent = "Excellent"; psnrEl.classList.add("excellent"); }
+    else if (psnr > 30) { psnrEl.textContent = "Good"; psnrEl.classList.add("good"); }
+    else if (psnr > 20) { psnrEl.textContent = "Moderate"; psnrEl.classList.add("moderate"); }
+    else { psnrEl.textContent = "Poor"; psnrEl.classList.add("poor"); }
+  </script>
+</body>
+</html>

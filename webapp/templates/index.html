@@ -1,59 +1,47 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
   <meta charset="utf-8">
-  <title>LSB Steganography — Embed & Extract</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+  <title>LSB Steganography Tool</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="container">
-    <h1>Steganography: Embed & Extract (LSB)</h1>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flash">
-          {% for msg in messages %} <div>{{ msg }}</div> {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+    <h1>🕵️‍♂️ LSB Steganography Tool</h1>
 
-    <div class="card">
-      <h2>Embed Message into Image</h2>
-      <form action="{{ url_for('embed') }}" method="post" enctype="multipart/form-data">
-        <label>Cover image (PNG or BMP):</label>
-        <input type="file" name="cover_image" accept=".png,.bmp" required>
-        <label>Secret message:</label>
-        <textarea name="message" rows="4" placeholder="Type the message to hide..." required></textarea>
-        <button type="submit">Embed & Generate Stego Image</button>
-      </form>
-    </div>
+    <h2>Embed Message</h2>
+    <form action="/embed" method="POST" enctype="multipart/form-data">
+      <label>Cover Image (PNG/BMP/JPG):</label>
+      <input type="file" name="cover" required><br>
+      <label>Secret Message:</label>
+      <textarea name="message" rows="3" required></textarea><br>
+      <label>Save Stego as:</label>
+      <select name="output_format">
+        <option value="PNG" selected>PNG (Recommended)</option>
+        <option value="JPG">JPG (High Quality)</option>
+      </select><br>
+      <button type="submit">Embed Message</button>
+    </form>
 
-    <div class="card">
-      <h2>Extract Message from Stego Image</h2>
-      <form action="{{ url_for('extract') }}" method="post" enctype="multipart/form-data">
-        <label>Stego image (PNG or BMP):</label>
-        <input type="file" name="stego_image" accept=".png,.bmp" required>
-        <button type="submit">Extract Message</button>
-      </form>
-    </div>
+    <hr>
 
-    <div class="card">
-      <h2>Steganalysis (Compare Cover & Stego Images)</h2>
-      <form action="{{ url_for('analyze') }}" method="post" enctype="multipart/form-data">
-        <label>Cover Image (original):</label>
-        <input type="file" name="cover_image" accept=".png,.bmp" required>
-    
-        <label>Stego Image (modified):</label>
-        <input type="file" name="stego_image" accept=".png,.bmp" required>
-        
-    <button type="submit">Analyze</button>
-  </form>
-</div>
+    <h2>Extract Message</h2>
+    <form action="/extract" method="POST" enctype="multipart/form-data">
+      <label>Stego Image (PNG/BMP/JPG):</label>
+      <input type="file" name="stego" required><br>
+      <button type="submit">Extract</button>
+    </form>
 
+    <hr>
 
-    <footer>
-      <small>Use PNG/BMP. Do not compress (JPEG will destroy hidden bits).</small>
-    </footer>
+    <h2>Analyze Images</h2>
+    <form action="/analyze" method="POST" enctype="multipart/form-data">
+      <label>Cover Image:</label>
+      <input type="file" name="cover" required><br>
+      <label>Stego Image:</label>
+      <input type="file" name="stego" required><br>
+      <button type="submit">Analyze</button>
+    </form>
   </div>
 </body>
 </html>

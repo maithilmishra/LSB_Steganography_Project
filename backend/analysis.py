@@ -1,50 +1,61 @@
 # backend/analysis.py
 import cv2
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import io
 import base64
 
 def mse(imageA, imageB):
+    """Mean Squared Error between two images."""
     err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
     err /= float(imageA.shape[0] * imageA.shape[1])
     return err
 
 def psnr(imageA, imageB):
-    mse_val = mse(imageA, imageB)
-    if mse_val == 0:
-        return float('inf')
+    """Peak Signal-to-Noise Ratio."""
+    m = mse(imageA, imageB)
+    if m == 0:
+        return float("inf")
     max_pixel = 255.0
-    return 20 * np.log10(max_pixel / np.sqrt(mse_val))
+    return 20 * np.log10(max_pixel / np.sqrt(m))
 
-def compare_images(cover_path, stego_path):
-    """Compute PSNR, MSE and generate histogram comparison plot as base64."""
+def compare_images(cover_path: str, stego_path: str):
+    """
+    Compare cover and stego images visually and numerically.
+    Returns (MSE, PSNR, histogram_base64)
+    """
     cover = cv2.imread(cover_path)
     stego = cv2.imread(stego_path)
-
     if cover is None or stego is None:
-        raise ValueError("Error: One or both images not found or invalid.")
+        raise FileNotFoundError("Could not read one of the images for comparison.")
 
-    cover = cv2.resize(cover, (stego.shape[1], stego.shape[0]))  # ensure same size
+    # Resize to same shape if needed
+    if cover.shape != stego.shape:
+        stego = cv2.resize(stego, (cover.shape[1], cover.shape[0]))
 
-    mse_val = mse(cover, stego)
-    psnr_val = psnr(cover, stego)
+    m = mse(cover, stego)
+    p = psnr(cover, stego)
 
-    # Plot histograms
-    plt.figure(figsize=(8, 4))
-    plt.hist(cover.ravel(), bins=256, color='blue', alpha=0.5, label='Cover')
-    plt.hist(stego.ravel(), bins=256, color='red', alpha=0.5, label='Stego')
+    # Plot histogram comparison
+    plt.figure(figsize=(6, 4))
+    color = ('b', 'g', 'r')
+    for i, col in enumerate(color):
+        hist_cover = cv2.calcHist([cover], [i], None, [256], [0, 256])
+        hist_stego = cv2.calcHist([stego], [i], None, [256], [0, 256])
+        plt.plot(hist_cover, color=col, linestyle='--', label=f'{col.upper()} Cover')
+        plt.plot(hist_stego, color=col, label=f'{col.upper()} Stego')
+    plt.legend()
     plt.title("Histogram Comparison")
     plt.xlabel("Pixel Intensity")
     plt.ylabel("Frequency")
-    plt.legend()
 
-    # Convert plot to base64 string for HTML embedding
-    buf = io.BytesIO()
-    plt.tight_layout()
-    plt.savefig(buf, format='png')
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
     plt.close()
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    buffer.seek(0)
+    hist_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    hist_datauri = f"data:image/png;base64,{hist_base64}"
 
-    return mse_val, psnr_val, img_base64
+    return round(m, 4), round(p, 2), hist_datauri
