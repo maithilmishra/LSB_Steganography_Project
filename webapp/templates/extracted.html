@@ -1,33 +1,12 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Extracted Message</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    .message-box {
-      max-width: 90%;
-      margin: 20px auto;
-      padding: 15px;
-      background: #f9f9f9;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      white-space: pre-wrap;     /* preserves spacing and wraps text */
-      word-wrap: break-word;     /* breaks long words */
-      overflow-wrap: break-word; /* modern fallback */
-      font-size: 15px;
-      line-height: 1.4;
-      color: #333;
-      max-height: 400px;         /* prevents overexpanding */
-      overflow-y: auto;          /* adds scroll for long messages */
-    }
-  </style>
-</head>
+<head><title>Extracted Message</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
 <body>
-  <div class="container">
-    <h1>🪶 Extracted Message</h1>
-    <div class="message-box">{{ message }}</div>
-    <a href="/">← Back Home</a>
-  </div>
+<div class="container">
+  <h2>📩 Decrypted Message</h2>
+  <textarea rows="6" readonly>{{ message }}</textarea>
+  <br><a href="/">← Back</a>
+</div>
 </body>
 </html>

@@ -1,28 +1,21 @@
 # backend/decode.py
-import cv2
-import numpy as np
-from .utils import binary_to_message
+import cv2, numpy as np, random, hashlib
+from backend.utils import binary_to_message
 
-def extract_data(stego_image_path: str) -> str:
-    """
-    Extract hidden message from a stego image.
-    Works with PNG, BMP, JPG, and JPEG.
-    """
-    image = cv2.imread(stego_image_path)
-    if image is None:
-        raise FileNotFoundError("Stego image not found or invalid format.")
-    if image.dtype != np.uint8:
-        image = image.astype(np.uint8)
-
-    binary_data = ""
+def extract_data(stego_path, key=""):
+    image = cv2.imread(stego_path)
+    if image is None: return ""
     h, w, _ = image.shape
+    total_pixels = h * w
+    indices = list(range(total_pixels))
+    if key:
+        seed = int(hashlib.sha256(key.encode()).hexdigest(), 16) % (10**8)
+        random.seed(seed)
+        random.shuffle(indices)
 
-    for row in range(h):
-        for col in range(w):
-            pixel = image[row, col]
-            for ch in range(3):  # B, G, R
-                lsb = int(pixel[ch]) & 1
-                binary_data += str(lsb)
-
-    message = binary_to_message(binary_data)
-    return message
+    flat = image.reshape(-1, 3)
+    bits = ""
+    for idx in indices:
+        for ch in range(3):
+            bits += str(flat[idx][ch] & 1)
+    return binary_to_message(bits)

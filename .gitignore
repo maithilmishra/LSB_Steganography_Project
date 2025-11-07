@@ -1,57 +1,63 @@
-# -------------------------------
-# Python and Flask Ignore Rules
-# -------------------------------
-
-# Byte-compiled / optimized / DLL files
+# ---- Python ----
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environment
+# ---- Virtual Environment ----
 .venv/
 env/
 venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Environment variables
-.env
-
-# macOS / Windows / Linux system files
-.DS_Store
-Thumbs.db
-
-# Flask specific
-instance/
-*.db
-*.sqlite3
-
-# IDE / Editor config
+# ---- IDE / Editor ----
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
-# Logs
-*.log
+# ---- OS Generated ----
+.DS_Store
+Thumbs.db
 
-# -------------------------------
-# Project-specific Ignore Rules
-# -------------------------------
-
-# Input & Output images (user uploads, generated stego files)
+# ---- Flask Uploads / Generated Files ----
 input/
 output/
+instance/
+*.db
+*.sqlite3
 
-# Generated files from Matplotlib / Histogram plots
-*.png
-*.jpg
-
-# Cache folders
-__pycache__/
+# ---- Logs and Caches ----
+*.log
+*.pot
+*.mo
 *.pyo
-*.pyd
+*.pkl
+*.bak
+*.tmp
+*.swp
+*.zip
+*.tar
+*.gz
+*.7z
 
-# Compiled distributions
+# ---- PyInstaller ----
+*.spec
 build/
 dist/
-*.egg-info/
-.eggs/
+
+# ---- Reports / Generated Assets ----
+*.pdf
+*.csv
+*.xlsx
+*.json
+*.png
+*.jpg
+*.jpeg
+
+# ---- Keys and Credentials ----
+*.pem
+*.key
+*.crt
+*.pub

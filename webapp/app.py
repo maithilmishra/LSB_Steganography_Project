@@ -1,49 +1,21 @@
 # webapp/app.py
-import os, sys
+from flask import Flask, render_template, request
+import os, base64, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import uuid
-from flask import Flask, render_template, request, redirect, url_for, flash
-from werkzeug.utils import secure_filename
+import cv2
+from PIL import Image
 from backend.encode import hide_data
 from backend.decode import extract_data
-from backend.analysis import compare_images
-from PIL import Image
-from base64 import b64encode
+from backend.crypto_utils import (
+    generate_session_keys, aes_gcm_encrypt, aes_gcm_decrypt,
+    rsa_wrap_keys, rsa_unwrap_keys
+)
+from backend.analysis import analyze_images
 
-# Flask setup
 app = Flask(__name__)
-app.secret_key = "stegano_secret"
-app.config['UPLOAD_FOLDER'] = "../input"
-app.config['OUTPUT_FOLDER'] = "../output"
-ALLOWED_EXTENSIONS = {'png', 'bmp', 'jpg', 'jpeg'}
-
-# ------------------------------
-# Helper functions
-# ------------------------------
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def file_to_datauri(path):
-    with open(path, "rb") as f:
-        encoded = b64encode(f.read()).decode('utf-8')
-    ext = path.split('.')[-1]
-    return f"data:image/{ext};base64,{encoded}"
-
-def convert_to_png(image_path):
-    """
-    Converts JPG/JPEG to PNG to avoid lossy compression issues.
-    Returns new PNG path.
-    """
-    if image_path.lower().endswith(('.jpg', '.jpeg')):
-        im = Image.open(image_path)
-        png_path = os.path.splitext(image_path)[0] + ".png"
-        im.save(png_path, format="PNG")
-        return png_path
-    return image_path
-
-# ------------------------------
-# Routes
-# ------------------------------
+UPLOAD_FOLDER, OUTPUT_FOLDER = 'input', 'output'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 @app.route('/')
 def index():
@@ -51,88 +23,104 @@ def index():
 
 @app.route('/embed', methods=['POST'])
 def embed():
-    if 'cover' not in request.files or request.files['cover'].filename == '':
-        flash("Please upload a valid image file.")
-        return redirect(url_for('index'))
-
-    cover_file = request.files['cover']
+    file = request.files['cover_image']
     message = request.form['message']
-    output_format = request.form.get('output_format', 'PNG')  # from dropdown if added
+    pubkey_file = request.files.get('receiver_pubkey')
 
-    if not allowed_file(cover_file.filename):
-        flash("Unsupported file format. Use PNG, BMP, JPG, or JPEG.")
-        return redirect(url_for('index'))
+    if not pubkey_file:
+        return "❌ Receiver public key file required."
 
-    filename = secure_filename(cover_file.filename)
-    uid = str(uuid.uuid4())[:8]
-    input_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}_{filename}")
-    cover_file.save(input_path)
+    receiver_pub = pubkey_file.read().decode('utf-8')
 
-    # Convert JPEGs internally to PNG
-    input_path = convert_to_png(input_path)
+    if file:
+        filename = file.filename
+        ext = filename.lower().split('.')[-1]
 
-    # Output file
-    ext = output_format.lower()
-    output_name = f"stego_{uid}.{ext}"
-    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_name)
+        # convert JPG/JPEG to PNG automatically
+        if ext in ['jpg', 'jpeg']:
+            from PIL import Image
+            img = Image.open(file.stream).convert("RGB")
+            filename = filename.rsplit('.', 1)[0] + ".png"
+            cover_path = os.path.join(UPLOAD_FOLDER, filename)
+            img.save(cover_path, "PNG")
+        else:
+            cover_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(cover_path)
 
-    success = hide_data(input_path, output_path, message, output_format)
+        import cv2
+        img = cv2.imread(cover_path)
+        h, w, _ = img.shape
+        max_chars = (h * w * 3) // 8
+        if len(message) > max_chars:
+            return f"❌ Message too long! Max {max_chars} characters."
 
-    if not success:
-        flash("Message too large for selected image. Try a larger one.")
-        return redirect(url_for('index'))
+        # Generate AES + randomization keys
+        from backend.crypto_utils import generate_session_keys, aes_gcm_encrypt, rsa_wrap_keys
+        aes_key, rand_key = generate_session_keys()
 
-    datauri = file_to_datauri(output_path)
-    download_url = url_for('download_file', filename=output_name)
-    return render_template('result.html',
-                       stego_datauri=datauri,
-                       stego_filename=output_name,
-                       download_url=download_url)
+        # Encrypt message
+        cipher_blob = aes_gcm_encrypt(message, aes_key)
+
+        # Embed ciphertext into image
+        from backend.encode import hide_data
+        success = hide_data(cover_path, os.path.join(OUTPUT_FOLDER, f"stego_{filename}"), cipher_blob, rand_key)
+        if not success:
+            return "Embedding failed."
+
+        # Wrap AES and random keys with receiver public key
+        wrapped_b64 = rsa_wrap_keys(aes_key, rand_key, receiver_pub)
+
+        stego_filename = f"stego_{filename}"
+        return render_template('result.html',
+                            stego_image=stego_filename,
+                            wrapped=wrapped_b64)
+
+    return "No file uploaded."
 
 @app.route('/extract', methods=['POST'])
 def extract():
-    if 'stego' not in request.files or request.files['stego'].filename == '':
-        flash("Please upload a stego image.")
-        return redirect(url_for('index'))
+    file = request.files['stego_image']
+    privkey_file = request.files.get('receiver_privkey')
+    wrapped_b64 = request.form.get('wrapped_blob', '').strip()
 
-    stego_file = request.files['stego']
-    if not allowed_file(stego_file.filename):
-        flash("Unsupported file format.")
-        return redirect(url_for('index'))
+    if not (file and privkey_file and wrapped_b64):
+        return "❌ Stego image, private key, and wrapped blob required."
 
-    filename = secure_filename(stego_file.filename)
-    uid = str(uuid.uuid4())[:8]
-    path = os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}_{filename}")
-    stego_file.save(path)
+    receiver_priv = privkey_file.read().decode('utf-8')
 
-    message = extract_data(path)
+    stego_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(stego_path)
+
+    from backend.crypto_utils import rsa_unwrap_keys, aes_gcm_decrypt
+    from backend.decode import extract_data
+
+    aes_key, rand_key = rsa_unwrap_keys(wrapped_b64, receiver_priv)
+    cipher_blob = extract_data(stego_path, rand_key)
+
+    try:
+        message = aes_gcm_decrypt(cipher_blob, aes_key)
+    except Exception:
+        message = "❌ Decryption failed or corrupted data."
+
     return render_template('extracted.html', message=message)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    if 'cover' not in request.files or 'stego' not in request.files:
-        flash("Please upload both cover and stego images.")
-        return redirect(url_for('index'))
-
-    cover_file = request.files['cover']
-    stego_file = request.files['stego']
-
-    uid = str(uuid.uuid4())[:8]
-    cover_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}_cover.png")
-    stego_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}_stego.png")
-    cover_file.save(cover_path)
-    stego_file.save(stego_path)
-
-    mse, psnr, hist_datauri = compare_images(cover_path, stego_path)
-    return render_template('analysis.html', mse=mse, psnr=psnr, hist_datauri=hist_datauri)
+    cover, stego = request.files['cover_image'], request.files['stego_image']
+    if cover and stego:
+        cpath, spath = os.path.join(UPLOAD_FOLDER, cover.filename), os.path.join(UPLOAD_FOLDER, stego.filename)
+        cover.save(cpath); stego.save(spath)
+        mse, psnr, hist = analyze_images(cpath, spath)
+        return render_template('analysis.html', mse=mse, psnr=psnr, hist_datauri=hist)
+    return "Upload both images."
 
 from flask import send_from_directory
-@app.route('/download/<filename>')
+
+@app.route('/output/<path:filename>')
 def download_file(filename):
-    """Serve the stego image for download."""
-    return send_from_directory(app.config['OUTPUT_FOLDER'], filename, as_attachment=True)
+    """Allow viewing/downloading stego images."""
+    return send_from_directory(OUTPUT_FOLDER, filename, as_attachment=False)
+
 
 if __name__ == '__main__':
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
     app.run(debug=True)

@@ -1,47 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>LSB Steganography Tool</title>
+  <title>Secure LSB Steganography</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <div class="container">
-    <h1>🕵️‍♂️ LSB Steganography Tool</h1>
+<div class="container">
+  <h1>🔐 Secure LSB Steganography (RSA + AES-GCM)</h1>
 
-    <h2>Embed Message</h2>
-    <form action="/embed" method="POST" enctype="multipart/form-data">
-      <label>Cover Image (PNG/BMP/JPG):</label>
-      <input type="file" name="cover" required><br>
-      <label>Secret Message:</label>
-      <textarea name="message" rows="3" required></textarea><br>
-      <label>Save Stego as:</label>
-      <select name="output_format">
-        <option value="PNG" selected>PNG (Recommended)</option>
-        <option value="JPG">JPG (High Quality)</option>
-      </select><br>
-      <button type="submit">Embed Message</button>
-    </form>
+  <h2>Embed Message</h2>
+  <form action="/embed" method="POST" enctype="multipart/form-data">
+    <label>Cover Image:</label>
+    <input type="file" name="cover_image" accept=".png,.bmp,.jpg,.jpeg" required><br><br>
 
-    <hr>
+    <label>Secret Message:</label><br>
+    <textarea name="message" rows="4" required></textarea><br><br>
 
-    <h2>Extract Message</h2>
-    <form action="/extract" method="POST" enctype="multipart/form-data">
-      <label>Stego Image (PNG/BMP/JPG):</label>
-      <input type="file" name="stego" required><br>
-      <button type="submit">Extract</button>
-    </form>
+    <label>Receiver Public Key (.pem file):</label><br>
+    <input type="file" name="receiver_pubkey" accept=".pem" required><br><br>
+    <p id="capacity-info" style="font-weight:bold;color:#007bff;"></p>
 
-    <hr>
+    <script>
+    document.querySelector('input[name="cover_image"]').addEventListener('change', function(evt) {
+        const file = evt.target.files[0];
+        if (!file) return;
 
-    <h2>Analyze Images</h2>
-    <form action="/analyze" method="POST" enctype="multipart/form-data">
-      <label>Cover Image:</label>
-      <input type="file" name="cover" required><br>
-      <label>Stego Image:</label>
-      <input type="file" name="stego" required><br>
-      <button type="submit">Analyze</button>
-    </form>
-  </div>
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = function() {
+            const width = img.width;
+            const height = img.height;
+            const capacity = Math.floor((width * height * 3) / 8);
+            document.getElementById('capacity-info').textContent =
+                `🧮 This image can hide approximately ${capacity.toLocaleString()} characters.`;
+            URL.revokeObjectURL(url);
+        };
+        img.src = url;
+    });
+    </script>
+
+    <button type="submit">Embed Securely</button>
+
+  </form>
+
+  <hr>
+
+  <h2>Extract Message</h2>
+  <form action="/extract" method="POST" enctype="multipart/form-data">
+    <label>Stego Image:</label>
+    <input type="file" name="stego_image" required><br><br>
+
+    <label>Receiver Private Key (.pem file):</label><br>
+    <input type="file" name="receiver_privkey" accept=".pem" required><br><br>
+
+    <label>Wrapped Key Blob (from sender):</label><br>
+    <textarea name="wrapped_blob" rows="3" placeholder="Paste wrapped data" required></textarea><br><br>
+
+    <button type="submit">Extract & Decrypt</button>
+  </form>
+
+  <hr>
+  <h2>Analyze Stego Quality</h2>
+  <form action="/analyze" method="POST" enctype="multipart/form-data">
+    <label>Cover Image:</label><input type="file" name="cover_image" required><br>
+    <label>Stego Image:</label><input type="file" name="stego_image" required><br>
+    <button type="submit">Analyze</button>
+  </form>
+</div>
 </body>
 </html>
